@@ -28,31 +28,60 @@ document.addEventListener('DOMContentLoaded', () => {
       none.textContent = 'No famous individuals in our list share this parsha.';
       resultsDiv.appendChild(none);
     } else {
+      // Deduplicate by name at runtime
+      const seen = new Set();
+      const unique = [];
+      people.forEach(p => {
+        if (!seen.has(p.name)) {
+          seen.add(p.name);
+          unique.push(p);
+        }
+      });
       const list = document.createElement('ul');
       list.className = 'famous-list';
-      people.forEach(person => {
+      unique.forEach(person => {
         const li = document.createElement('li');
         li.className = 'famous-item';
         // Person name
         const nameEl = document.createElement('strong');
         nameEl.textContent = person.name;
         li.appendChild(nameEl);
-        // Snippet if available
+        // Function to insert snippet and link into li
+        const insertDetails = (snippet, url) => {
+          if (snippet) {
+            const snippetEl = document.createElement('p');
+            snippetEl.className = 'snippet';
+            snippetEl.textContent = snippet;
+            li.appendChild(snippetEl);
+          }
+          if (url) {
+            const linkEl = document.createElement('a');
+            linkEl.className = 'learn-more';
+            linkEl.href = url;
+            linkEl.target = '_blank';
+            linkEl.rel = 'noopener noreferrer';
+            linkEl.textContent = 'Learn more';
+            li.appendChild(linkEl);
+          }
+        };
+        // If snippet already provided, use it; otherwise fetch from Wikipedia
         if (person.snippet) {
-          const snippet = document.createElement('p');
-          snippet.className = 'snippet';
-          snippet.textContent = person.snippet;
-          li.appendChild(snippet);
-        }
-        // Link if available
-        if (person.link) {
-          const linkEl = document.createElement('a');
-          linkEl.className = 'learn-more';
-          linkEl.href = person.link;
-          linkEl.target = '_blank';
-          linkEl.rel = 'noopener noreferrer';
-          linkEl.textContent = 'Learn more';
-          li.appendChild(linkEl);
+          insertDetails(person.snippet, person.link);
+        } else {
+          // Build page title for Wikipedia API (replace spaces with underscores)
+          const title = encodeURIComponent(person.name.replace(/ /g, '_'));
+          fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${title}`)
+            .then(resp => resp.ok ? resp.json() : Promise.reject())
+            .then(data => {
+              const extract = data.extract;
+              const linkUrl = data.content_urls && data.content_urls.desktop && data.content_urls.desktop.page ? data.content_urls.desktop.page : `https://en.wikipedia.org/wiki/${title}`;
+              insertDetails(extract, linkUrl);
+            })
+            .catch(() => {
+              // Fallback: just provide Wikipedia link if available
+              const linkUrl = `https://en.wikipedia.org/wiki/${title}`;
+              insertDetails('', linkUrl);
+            });
         }
         list.appendChild(li);
       });
