@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bar/Bat Mitzvah Parsha Finder</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+    }
+    input[type="date"] {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #results {
+      margin-top: 1.5rem;
+    }
+    .parsha-name {
+      font-weight: bold;
+    }
+    .famous-list {
+      margin-top: 0.5rem;
+      padding-left: 1rem;
+    }
+    .famous-item {
+      margin-bottom: 0.25rem;
+    }
+    .note {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bar/Bat Mitzvah Parsha Finder</h1>
+  <div class="container">
+    <label for="dateInput">Enter your bar or bat mitzvah date:</label>
+    <input type="date" id="dateInput" />
+    <button id="searchBtn">Find Famous Jews</button>
+    <div id="results"></div>
+    <div class="note">
+      <p>Note: Parsha calculations follow the diaspora cycle. The list of famous Jews is illustrative and not exhaustive.</p>
+    </div>
+  </div>
+  <script src="data.js"></script>
+  <script src="parsha.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
