@@ -737,4 +737,67 @@ const famousJews = [
     "birthdate": "1929-11-15",
     "bar_date": "1942-11-15"
   }
+  ,
+  /*
+   * Additional entries added to ensure representation of every weekly Torah portion
+   * in the Diaspora reading cycle.  Each new record includes a short
+   * biography snippet and a link to the individual’s Wikipedia page for
+   * further reading.
+   */
+  {
+    "name": "Alfred Stieglitz",
+    "parsha": "Shemot",
+    "birthdate": "1864-01-01",
+    "bar_date": "1877-01-01",
+    "snippet": "American photographer and modern art promoter who helped make photography an accepted art form and introduced avant‑garde European artists to the United States through his New York galleries.",
+    "link": "https://en.wikipedia.org/wiki/Alfred_Stieglitz"
+  },
+  {
+    "name": "Jesse Steinfeld",
+    "parsha": "Va'eira",
+    "birthdate": "1927-01-06",
+    "bar_date": "1940-01-06",
+    "snippet": "American physician and public health official who served as the 11th Surgeon General of the United States.",
+    "link": "https://en.wikipedia.org/wiki/Jesse_Steinfeld"
+  },
+  {
+    "name": "Yitzhak Rabin",
+    "parsha": "Vayakhel",
+    "birthdate": "1922-03-01",
+    "bar_date": "1935-03-01",
+    "snippet": "Israeli statesman and general who served as prime minister of Israel (1974–1977 and 1992–1995), the first prime minister born in Mandatory Palestine and a Nobel Peace Prize laureate for the Oslo Accords.",
+    "link": "https://en.wikipedia.org/wiki/Yitzhak_Rabin"
+  },
+  {
+    "name": "Jerry Lewis",
+    "parsha": "Vayakhel, Pekudei",
+    "birthdate": "1926-03-16",
+    "bar_date": "1939-03-16",
+    "snippet": "American comedian, actor, singer, filmmaker and humanitarian, nicknamed ‘The King of Comedy’ and regarded as one of the greatest comedians of the 20th century.",
+    "link": "https://en.wikipedia.org/wiki/Jerry_Lewis"
+  },
+  {
+    "name": "Sigmund Freud",
+    "parsha": "Behar, Bechukotai",
+    "birthdate": "1856-05-06",
+    "bar_date": "1869-05-06",
+    "snippet": "Austrian neurologist and the founder of psychoanalysis, a clinical method for evaluating and treating pathologies in the psyche.",
+    "link": "https://en.wikipedia.org/wiki/Sigmund_Freud"
+  },
+  {
+    "name": "Gal Gadot",
+    "parsha": "Tazria, Metzora",
+    "birthdate": "1985-04-30",
+    "bar_date": "1998-04-30",
+    "snippet": "Israeli actress known for portraying Wonder Woman in the DC Extended Universe; named one of Time’s 100 most influential people and the first Israeli actor to receive a Hollywood Walk of Fame star.",
+    "link": "https://en.wikipedia.org/wiki/Gal_Gadot"
+  },
+  {
+    "name": "Adam Sandler",
+    "parsha": "Nitzavim, Vayeilech",
+    "birthdate": "1966-09-09",
+    "bar_date": "1979-09-09",
+    "snippet": "American stand‑up comedian and actor, primarily a comedic leading actor in films. His accolades include an Independent Spirit Award and nominations for three Grammy Awards, seven Primetime Emmy Awards, two Golden Globe Awards and a Screen Actors Guild Award.",
+    "link": "https://en.wikipedia.org/wiki/Adam_Sandler"
+  }
 ];

@@ -33,7 +33,27 @@ document.addEventListener('DOMContentLoaded', () => {
       people.forEach(person => {
         const li = document.createElement('li');
         li.className = 'famous-item';
-        li.textContent = person.name;
+        // Person name
+        const nameEl = document.createElement('strong');
+        nameEl.textContent = person.name;
+        li.appendChild(nameEl);
+        // Snippet if available
+        if (person.snippet) {
+          const snippet = document.createElement('p');
+          snippet.className = 'snippet';
+          snippet.textContent = person.snippet;
+          li.appendChild(snippet);
+        }
+        // Link if available
+        if (person.link) {
+          const linkEl = document.createElement('a');
+          linkEl.className = 'learn-more';
+          linkEl.href = person.link;
+          linkEl.target = '_blank';
+          linkEl.rel = 'noopener noreferrer';
+          linkEl.textContent = 'Learn more';
+          li.appendChild(linkEl);
+        }
         list.appendChild(li);
       });
       resultsDiv.appendChild(list);
