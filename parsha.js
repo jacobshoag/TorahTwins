@@ -1,346 +1,202 @@
 /*
  * Functions to compute the weekly Torah portion (parsha) for a given
- * Gregorian date.  This file contains a JavaScript port of the
- * algorithm implemented in parsha_calculator.py.  It is self‑contained
- * and does not rely on any external libraries.  See that Python
- * module for detailed comments explaining the math.  The implementation
- * here follows the same structure to make it easy to compare.
+ * Gregorian date.  This file contains a pure‑JavaScript port of the
+ * algorithm in parsha_calculator.py, so it needs no external libraries.
+ *
+ *  ────────────────────────────────────────────────────────────────
+ *  NEW (July 2025):  getBarMitzvahParshaName() – correct halachic method
+ *  ────────────────────────────────────────────────────────────────
  */
 
-// List of parsha names in Ashkenazic transliteration.  Indices
-// correspond to values produced by the algorithm.  Double portions
-// will return two indices.
+/* ---------------- Parsha list ---------------- */
 const PARSHIOS = [
-  'Bereshit',      // 0
-  'Noach',         // 1
-  'Lech-Lecha',    // 2
-  'Vayera',        // 3
-  'Chayei Sara',   // 4
-  'Toldot',        // 5
-  'Vayetzei',      // 6
-  'Vayishlach',    // 7
-  'Vayeshev',      // 8
-  'Miketz',        // 9
-  'Vayigash',      // 10
-  'Vayechi',       // 11
-  'Shemot',        // 12
-  "Va'eira",      // 13
-  'Bo',            // 14
-  'Beshalach',     // 15
-  'Yitro',         // 16
-  'Mishpatim',     // 17
-  'Terumah',       // 18
-  'Tetzaveh',      // 19
-  'Ki Tisa',       // 20
-  'Vayakhel',      // 21
-  'Pekudei',       // 22
-  'Vayikra',       // 23
-  'Tzav',          // 24
-  'Shmini',        // 25
-  'Tazria',        // 26
-  'Metzora',       // 27
-  'Achrei Mot',    // 28
-  'Kedoshim',      // 29
-  'Emor',          // 30
-  'Behar',         // 31
-  'Bechukotai',    // 32
-  'Bamidbar',      // 33
-  'Naso',          // 34
-  "Beha'alotcha", // 35
-  'Sh’lach',       // 36
-  'Korach',        // 37
-  'Chukat',        // 38
-  'Balak',         // 39
-  'Pinchas',       // 40
-  'Matot',         // 41
-  'Masei',         // 42
-  'Devarim',       // 43
-  'Vaetchanan',    // 44
-  'Eikev',         // 45
-  'Re’eh',         // 46
-  'Shoftim',       // 47
-  'Ki Teitzei',    // 48
-  'Ki Tavo',       // 49
-  'Nitzavim',      // 50
-  'Vayeilech',     // 51
-  'Ha’azinu',      // 52
-  'Vezot Haberakhah'  // 53 (not used for weekly reading but included for completeness)
+  'Bereshit', 'Noach', 'Lech-Lecha', 'Vayera', 'Chayei Sara', 'Toldot',
+  'Vayetzei', 'Vayishlach', 'Vayeshev', 'Miketz', 'Vayigash', 'Vayechi',
+  'Shemot', "Va'eira", 'Bo', 'Beshalach', 'Yitro', 'Mishpatim', 'Terumah',
+  'Tetzaveh', 'Ki Tisa', 'Vayakhel', 'Pekudei', 'Vayikra', 'Tzav', 'Shmini',
+  'Tazria', 'Metzora', 'Achrei Mot', 'Kedoshim', 'Emor', 'Behar',
+  'Bechukotai', 'Bamidbar', 'Naso', "Beha'alotcha", 'Sh’lach', 'Korach',
+  'Chukat', 'Balak', 'Pinchas', 'Matot', 'Masei', 'Devarim', 'Vaetchanan',
+  'Eikev', 'Re’eh', 'Shoftim', 'Ki Teitzei', 'Ki Tavo',
+  'Nitzavim', 'Vayeilech', 'Ha’azinu', 'Vezot Haberakhah'
 ];
 
-// Utility functions for Gregorian calendar
-function leapGregorian(year) {
-  return (year % 4 === 0) && ([100, 200, 300].indexOf(year % 400) === -1);
+/* ---------------- Gregorian helpers ---------------- */
+function leapGregorian(y) {
+  return (y % 4 === 0) && ([100, 200, 300].indexOf(y % 400) === -1);
+}
+function lastDayOfGregorianMonth(m, y) {
+  return (m === 2 && leapGregorian(y)) ? 29 :
+         [31,28,31,30,31,30,31,31,30,31,30,31][m - 1];
+}
+function gregorianToAbsDate(y, m, d) {
+  let abs = d;
+  for (let i = 1; i < m; i++) abs += lastDayOfGregorianMonth(i, y);
+  abs += 365 * (y - 1)
+       + Math.floor((y - 1) / 4)
+       - Math.floor((y - 1) / 100)
+       + Math.floor((y - 1) / 400);
+  return abs;
 }
 
-function lastDayOfGregorianMonth(month, year) {
-  if (month === 2 && leapGregorian(year)) {
-    return 29;
-  }
-  const lengths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  return lengths[month - 1];
-}
+/* ---------------- Hebrew‑calendar core ---------------- */
+function hebrewLeap(y)           { return (((y * 7) + 1) % 19) < 7; }
+function hebrewYearMonths(y)     { return hebrewLeap(y) ? 13 : 12; }
 
-function gregorianToAbsDate(year, month, day) {
-  // Convert a Gregorian date to the absolute day count used by our algorithm.
-  let absdate = day;
-  for (let m = 1; m < month; m++) {
-    absdate += lastDayOfGregorianMonth(m, year);
-  }
-  absdate += 365 * (year - 1);
-  absdate += Math.floor((year - 1) / 4);
-  absdate -= Math.floor((year - 1) / 100);
-  absdate += Math.floor((year - 1) / 400);
-  return absdate;
-}
+function hebrewCalendarElapsedDays(y) {
+  let months = 235 * Math.floor((y - 1) / 19)
+             + 12  * ((y - 1) % 19)
+             + Math.floor((((y - 1) % 19) * 7 + 1) / 19);
+  let parts  = ((months % 1080) * 793) + 204;
+  let hours  = 5 + (months * 12) + Math.floor(parts / 1080);
+  let day    = 1 + (29 * months) + Math.floor(hours / 24);
+  let remain = ((hours % 24) * 1080) + (parts % 1080);
 
-// Hebrew calendar helper functions
-function hebrewLeap(year) {
-  return (((year * 7) + 1) % 19) < 7;
-}
-
-function hebrewYearMonths(year) {
-  return hebrewLeap(year) ? 13 : 12;
-}
-
-function hebrewCalendarElapsedDays(year) {
-  let monthsElapsed = 235 * Math.floor((year - 1) / 19);
-  monthsElapsed += 12 * ((year - 1) % 19);
-  monthsElapsed += Math.floor((((year - 1) % 19) * 7 + 1) / 19);
-  let partsElapsed = ((monthsElapsed % 1080) * 793) + 204;
-  let hoursElapsed = 5 + (monthsElapsed * 12) + Math.floor((monthsElapsed / 1080)) * 793 + Math.floor(partsElapsed / 1080);
-  let day = 1 + (29 * monthsElapsed) + Math.floor(hoursElapsed / 24);
-  let parts = ((hoursElapsed % 24) * 1080) + (partsElapsed % 1080);
-  let alternative_day;
-  // Apply postponement rules
+  // Rosh‑Hashanah postponement rules
   if (
-    parts >= 19440 ||
-    ((day % 7) === 2 && parts >= 9924 && !hebrewLeap(year)) ||
-    ((day % 7) === 1 && parts >= 16789 && hebrewLeap(year - 1))
+    remain >= 19440 ||
+    (day % 7 === 2 && remain >= 9924 && !hebrewLeap(y)) ||
+    (day % 7 === 1 && remain >= 16789 && hebrewLeap(y - 1))
   ) {
-    alternative_day = day + 1;
-  } else {
-    alternative_day = day;
+    day += 1;
   }
-  // Further postponements
-  if ([0, 3, 5].includes(alternative_day % 7)) {
-    alternative_day += 1;
-  }
-  return alternative_day;
-}
+  if ([0, 3, 5].includes(day % 7)) day += 1;
 
-function daysInHebrewYear(year) {
-  return hebrewCalendarElapsedDays(year + 1) - hebrewCalendarElapsedDays(year);
+  return day;
 }
+function daysInHebrewYear(y) { return hebrewCalendarElapsedDays(y + 1) - hebrewCalendarElapsedDays(y); }
+function longHeshvan(y)      { return (daysInHebrewYear(y) % 10) === 5; }
+function shortKislev(y)      { return (daysInHebrewYear(y) % 10) === 3; }
 
-function longHeshvan(year) {
-  return (daysInHebrewYear(year) % 10) === 5;
-}
-
-function shortKislev(year) {
-  return (daysInHebrewYear(year) % 10) === 3;
-}
-
-function hebrewMonthDays(year, month) {
-  // Months are numbered with Tishrei=7 ... Adar I=12, Adar II=13 (if leap), then Nisan=1, Iyar=2, etc.
-  if ([2, 4, 6, 10, 13].indexOf(month) !== -1) {
-    return 29;
-  }
-  if (month === 12 && !hebrewLeap(year)) {
-    return 29;
-  }
-  if (month === 8 && !longHeshvan(year)) {
-    return 29;
-  }
-  if (month === 9 && shortKislev(year)) {
-    return 29;
-  }
+function hebrewMonthDays(y, m) {
+  // Tishrei=7 … Adar II=13, then Nisan=1
+  if ([2, 4, 6, 10, 13].includes(m)) return 29;
+  if (m === 12 && !hebrewLeap(y))    return 29;
+  if (m === 8 && !longHeshvan(y))    return 29;
+  if (m === 9 &&  shortKislev(y))    return 29;
   return 30;
 }
 
-function hebrewToAbsDate(year, month, day) {
-  let absdate = day;
-  if (month < 7) {
-    // months Tishrei(7) through end of the year
-    for (let m = 7; m <= hebrewYearMonths(year); m++) {
-      absdate += hebrewMonthDays(year, m);
-    }
-    for (let m = 1; m < month; m++) {
-      absdate += hebrewMonthDays(year, m);
-    }
+function hebrewToAbsDate(y, m, d) {
+  let abs = d;
+  if (m < 7) {
+    for (let i = 7; i <= hebrewYearMonths(y); i++) abs += hebrewMonthDays(y, i);
+    for (let i = 1; i < m; i++) abs += hebrewMonthDays(y, i);
   } else {
-    for (let m = 7; m < month; m++) {
-      absdate += hebrewMonthDays(year, m);
-    }
+    for (let i = 7; i < m; i++) abs += hebrewMonthDays(y, i);
   }
-  absdate += hebrewCalendarElapsedDays(year);
-  // Offset to align with Gregorian epoch.  See parsha_calculator.py for details.
-  absdate -= 1373429;
-  return absdate;
+  abs += hebrewCalendarElapsedDays(y);
+  // offset to align with Gregorian epoch
+  return abs - 1373429;
 }
 
-function absDateToHebrew(absdate) {
-  const approx = Math.floor((absdate + 1373429) / 366);
-  let year = approx;
-  while (true) {
-    if (absdate < hebrewToAbsDate(year + 1, 7, 1)) break;
-    year += 1;
-  }
-  let startMonth;
-  if (absdate < hebrewToAbsDate(year, 1, 1)) {
-    startMonth = 7;
-  } else {
-    startMonth = 1;
-  }
-  let month = startMonth;
-  while (true) {
-    if (absdate <= hebrewToAbsDate(year, month, hebrewMonthDays(year, month))) break;
-    month += 1;
-  }
-  let day = absdate - hebrewToAbsDate(year, month, 1) + 1;
-  return { year: year, month: month, day: day };
+function absDateToHebrew(abs) {
+  const approx = Math.floor((abs + 1373429) / 366);
+  let y = approx;
+  while (abs >= hebrewToAbsDate(y + 1, 7, 1)) y += 1;
+
+  let startMonth = abs < hebrewToAbsDate(y, 1, 1) ? 7 : 1;
+  let m = startMonth;
+  while (abs > hebrewToAbsDate(y, m, hebrewMonthDays(y, m))) m += 1;
+
+  const d = abs - hebrewToAbsDate(y, m, 1) + 1;
+  return { year: y, month: m, day: d };
 }
 
-function getWeekdayFromAbsDate(absdate) {
-  // Return weekday with Sunday=0, Saturday=6.  Adjust for negative numbers.
-  let wd = absdate % 7;
-  if (wd < 0) wd += 7;
-  return wd;
-}
+function weekday(abs) { let w = abs % 7; if (w < 0) w += 7; return w; }
 
+/* ---------------- HebrewDate class ---------------- */
 class HebrewDate {
-  constructor(year, month, day) {
-    this.year = year;
-    this.month = month;
-    this.day = day;
-  }
-  get jd() {
-    return hebrewToAbsDate(this.year, this.month, this.day);
-  }
-  weekday() {
-    return getWeekdayFromAbsDate(this.jd) + 1; // 1=Sunday .. 7=Saturday
-  }
-  addDays(days) {
-    const newAbs = this.jd + days;
-    const h = absDateToHebrew(newAbs);
-    return new HebrewDate(h.year, h.month, h.day);
-  }
-  shabbos() {
-    const wday = this.weekday();
-    const distance = (7 - wday) % 7;
-    return this.addDays(distance);
-  }
-  key() {
-    return `${this.year}-${this.month}-${this.day}`;
-  }
+  constructor(y, m, d) { this.year = y; this.month = m; this.day = d; }
+  get jd()      { return hebrewToAbsDate(this.year, this.month, this.day); }
+  weekday()     { return weekday(this.jd) + 1; } // 1=Sun…7=Sat
+  addDays(n)    { const h = absDateToHebrew(this.jd + n); return new HebrewDate(h.year, h.month, h.day); }
+  shabbos()     { return this.addDays((7 - this.weekday()) % 7); }
+  key()         { return `${this.year}-${this.month}-${this.day}`; }
 }
 
-function parshaless(date, israel) {
-  // Determine if the Shabbat has no weekly parsha because it coincides with a holiday.
-  // In Israel, Simchat Torah (7-23), Pesach VII (1-22) and Shavuot II (3-7) still get a parsha.
-  if (israel) {
-    const tail = `${date.month},${date.day}`;
-    if (tail === '7,23' || tail === '1,22' || tail === '3,7') {
-      return false;
-    }
-  }
-  // Tishrei: Rosh Hashanah (1/2), Yom Kippur (10), Sukkot and Shemini Atzeret (15–23)
-  if (date.month === 7 && ([1, 2, 10].includes(date.day) || (date.day >= 15 && date.day <= 23))) {
-    return true;
-  }
-  // Nisan (1): first two days of Pesach (15–22 inclusive)
-  if (date.month === 1 && (date.day >= 15 && date.day <= 22)) {
-    return true;
-  }
-  // Sivan (3): first two days of Shavuot (6–7)
-  if (date.month === 3 && (date.day === 6 || date.day === 7)) {
-    return true;
-  }
+/* ---------------- parsha lookup engine ---------------- */
+function parshaless(hDate, israel) {
+  // holiday Shabbatot with no weekly portion
+  const m = hDate.month, d = hDate.day;
+  if (m === 7 && ([1,2,10].includes(d) || (d >= 15 && d <= 23))) return true;          // RH, YK, Sukkot
+  if (m === 1 &&  d >= 15 && d <= 22)                               return true;      // Pesach
+  if (m === 3 && (d === 6 || d === 7) && !israel)                  return true;      // Shavuot (Diaspora second day)
   return false;
 }
 
-// Cache for generated year tables to avoid recomputing.
-const gentableCache = {};
+const gencache = new Map();
+function gentable(y, israel = false) {
+  const key = `${y}-${israel ? 1 : 0}`;
+  if (gencache.has(key)) return gencache.get(key);
 
-function gentable(year, israel = false) {
-  const cacheKey = `${year}-${israel ? 1 : 0}`;
-  if (gentableCache[cacheKey]) {
-    return gentableCache[cacheKey];
-  }
-  // Build the deque of parsha indices: [51, 52, 0, 1, 2, ..., 51]
-  const parshalist = [];
-  parshalist.push(51, 52);
-  for (let i = 0; i < 52; i++) {
-    parshalist.push(i);
-  }
-  // pointer index for popping from front
-  let idx = 0;
-  const table = new Map();
-  const leap = hebrewLeap(year);
-  // Weekday of Pesach 15 Nissan
-  const pesachDay = new HebrewDate(year, 1, 15).weekday();
-  // First Shabbat on or after Rosh Hashanah
-  const roshHashana = new HebrewDate(year, 7, 1);
-  let shabbos = roshHashana.shabbos();
-  // If Rosh Hashanah falls on Thu/Fri/Sat (weekday > 4), skip the first parsha
-  if (roshHashana.weekday() > 4) {
-    idx += 1;
-  }
-  while (shabbos.year === year) {
-    if (parshaless(shabbos, israel)) {
-      table.set(shabbos.key(), null);
+  // Build parsha cycle list
+  const cycle = [51,52, ...Array.from({length:52}, (_,i)=>i)];
+  let ptr = 0;
+  const tbl = new Map();
+  const leap = hebrewLeap(y);
+  const pesachWday = new HebrewDate(y,1,15).weekday();
+  let shabbos = new HebrewDate(y,7,1).shabbos();
+  if (new HebrewDate(y,7,1).weekday() > 4) ptr += 1; // skip if RH Thu/Fri/Sat
+
+  while (shabbos.year === y) {
+    if (parshaless(shabbos,israel)) {
+      tbl.set(shabbos.key(), null);
     } else {
-      const parsha = parshalist[idx++];
-      const list = [parsha];
-      // Determine if this parsha should be doubled
-      // Conditions mirror those in the Python version
-      const cond1 = (parsha === 21 && Math.floor((new HebrewDate(year, 1, 14).jd - shabbos.jd) / 7) < 3);
-      const cond2 = ((parsha === 26 || parsha === 28) && !leap);
-      const cond3 = (parsha === 31 && !leap && (!israel || pesachDay !== 7));
-      const cond4 = (parsha === 38 && !israel && pesachDay === 5);
-      const cond5 = (parsha === 41 && Math.floor((new HebrewDate(year, 5, 9).jd - shabbos.jd) / 7) < 2);
-      const cond6 = (parsha === 50 && new HebrewDate(year + 1, 7, 1).weekday() > 4);
-      if (cond1 || cond2 || cond3 || cond4 || cond5 || cond6) {
-        list.push(parshalist[idx++]);
-      }
-      table.set(shabbos.key(), list);
+      const p1 = cycle[ptr++];
+      const list = [p1];
+
+      const cond1 = (p1===21 && Math.floor((new HebrewDate(y,1,14).jd - shabbos.jd)/7) < 3);
+      const cond2 = ((p1===26 || p1===28) && !leap);
+      const cond3 = (p1===31 && !leap && (!israel || pesachWday!==7));
+      const cond4 = (p1===38 && !israel && pesachWday===5);
+      const cond5 = (p1===41 && Math.floor((new HebrewDate(y,5,9).jd - shabbos.jd)/7) < 2);
+      const cond6 = (p1===50 && new HebrewDate(y+1,7,1).weekday()>4);
+
+      if (cond1||cond2||cond3||cond4||cond5||cond6) list.push(cycle[ptr++]);
+      tbl.set(shabbos.key(), list);
     }
-    // Move to next Shabbat
     shabbos = shabbos.addDays(7);
   }
-  gentableCache[cacheKey] = table;
-  return table;
+
+  gencache.set(key,tbl);
+  return tbl;
+}
+function getParshaIndices(hDate,israel=false) {
+  const shabbos = hDate.shabbos();
+  return gentable(shabbos.year,israel).get(shabbos.key());
 }
 
-function getParshaIndices(hebDate, israel = false) {
-  const shabbos = hebDate.shabbos();
-  const table = gentable(shabbos.year, israel);
-  return table.get(shabbos.key());
+/* ---------------- Parsha for any Gregorian date ---------------- */
+function getParshaName(gYear,gMonth,gDay,israel=false){
+  const abs  = gregorianToAbsDate(gYear,gMonth,gDay);
+  const h    = absDateToHebrew(abs);
+  const idxs = getParshaIndices(new HebrewDate(h.year,h.month,h.day),israel);
+  if (!idxs) return null;
+  return idxs.map(i => PARSHIOS[i]).join(', ');
 }
 
-/**
- * Compute the parsha name(s) for the Shabbat on or after the given
- * Gregorian date.  Returns a comma‑separated string or null if the
- * Shabbat coincides with a holiday and has no weekly parsha.
- *
- * @param {number} gYear Gregorian year
- * @param {number} gMonth Gregorian month (1–12)
- * @param {number} gDay Gregorian day (1–31)
- * @param {boolean} israel Set true for Israeli reading schedule
- * @returns {string|null}
- */
-function getParshaName(gYear, gMonth, gDay, israel = false) {
-  const absdate = gregorianToAbsDate(gYear, gMonth, gDay);
-  const h = absDateToHebrew(absdate);
-  const hebDate = new HebrewDate(h.year, h.month, h.day);
-  const indices = getParshaIndices(hebDate, israel);
-  if (indices === null || indices === undefined) {
-    return null;
-  }
-  const names = indices.map(i => PARSHIOS[i]);
-  return names.join(', ');
+/* ================================================================
+ * NEW helper:  Bar/Bat‑Mitzvah parsha (halachic)
+ * ================================================================ */
+function getBarMitzvahParshaName(gYear,gMonth,gDay,israel=false,gender='m'){
+  const absBirth = gregorianToAbsDate(gYear,gMonth,gDay);
+  const hBirth   = absDateToHebrew(absBirth);      // {year,month,day}
+  const hYearBM  = hBirth.year + (gender==='f'?12:13);
+  const hebBM    = new HebrewDate(hYearBM, hBirth.month, hBirth.day);
+  const shabbos  = hebBM.shabbos();                // next Shabbat
+  const idxs     = getParshaIndices(shabbos,israel);
+  return idxs ? idxs.map(i=>PARSHIOS[i]).join(', ') : null;
 }
 
-// Export functions for use in other scripts (for Node and browser)
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-  module.exports = { getParshaName };
+/* ---------------- exports ---------------- */
+if (typeof window !== 'undefined') {
+  window.getParshaName           = getParshaName;
+  window.getBarMitzvahParshaName = getBarMitzvahParshaName;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    getParshaName,
+    getBarMitzvahParshaName
+  };
 }
